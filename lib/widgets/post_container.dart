@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:facebook/provider/postProvider.dart';
+import 'package:facebook/screens/commentScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:facebook/config/palette.dart';
 import 'package:facebook/models/models.dart';
 import 'package:facebook/widgets/widgets.dart';
+import 'package:http/http.dart' as http;
 
 class PostContainer extends StatelessWidget {
-  final Post post;
+  final Post1 post;
 
   const PostContainer({
     Key? key,
@@ -37,16 +41,18 @@ class PostContainer extends StatelessWidget {
                   _PostHeader(post: post),
                   const SizedBox(height: 4.0),
                   Text(post.caption),
-                  post.imageUrl != null
+                  post.imageUrl.isNotEmpty
                       ? const SizedBox.shrink()
                       : const SizedBox(height: 6.0),
                 ],
               ),
             ),
-            post.imageUrl != null
+            post.imageUrl.isNotEmpty
                 ? Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: CachedNetworkImage(imageUrl: post.imageUrl!),
+                    child: CachedNetworkImage(
+                        imageUrl: "https://cvs.abyssiniasoftware.com" +
+                            post.imageUrl!),
                   )
                 : const SizedBox.shrink(),
             Padding(
@@ -61,7 +67,7 @@ class PostContainer extends StatelessWidget {
 }
 
 class _PostHeader extends StatelessWidget {
-  final Post post;
+  final Post1 post;
 
   const _PostHeader({
     Key? key,
@@ -72,14 +78,15 @@ class _PostHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        ProfileAvatar(imageUrl: post.user.imageUrl),
+        ProfileAvatar(
+            imageUrl: "https://cvs.abyssiniasoftware.com" + post.userImageUrl),
         const SizedBox(width: 8.0),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                post.user.name,
+                post.userName,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                 ),
@@ -113,12 +120,35 @@ class _PostHeader extends StatelessWidget {
 }
 
 class _PostStats extends StatelessWidget {
-  final Post post;
+  final Post1 post;
 
   const _PostStats({
     Key? key,
     required this.post,
   }) : super(key: key);
+
+  Future<void> sendLike(String postId) async {
+    print(postId);
+    final userId = "1"; // Replace with actual user ID
+    final url = 'https://cvs.abyssiniasoftware.com/api/like/$userId/$postId';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      );
+
+      if (response.statusCode == 201) {
+        print('Like sent successfully');
+      } else {
+        print('Failed to send like: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error sending like: $error');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,21 +171,21 @@ class _PostStats extends StatelessWidget {
             const SizedBox(width: 4.0),
             Expanded(
               child: Text(
-                '${post.likes}',
+                '${post.likes ?? 0}', // Use null-aware operator and provide a default value
                 style: TextStyle(
                   color: Colors.grey[600],
                 ),
               ),
             ),
             Text(
-              '${post.comments} Comments',
+              '${post.comments ?? 0} Comments', // Use null-aware operator and provide a default value
               style: TextStyle(
                 color: Colors.grey[600],
               ),
             ),
             const SizedBox(width: 8.0),
             Text(
-              '${post.shares} Shares',
+              '${post.shares} Shares', // Use null-aware operator and provide a default value
               style: TextStyle(
                 color: Colors.grey[600],
               ),
@@ -172,7 +202,9 @@ class _PostStats extends StatelessWidget {
                 size: 20.0,
               ),
               label: 'Like',
-              onTap: () => print('Like'),
+              onTap: () async {
+                await sendLike(post.id.toString() );
+              },
             ),
             _PostButton(
               icon: Icon(
@@ -181,17 +213,16 @@ class _PostStats extends StatelessWidget {
                 size: 20.0,
               ),
               label: 'Comment',
-              onTap: () => print('Comment'),
+               onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CommentsScreen(postId: post.id),
+                  ),
+                );
+              },
             ),
-            _PostButton(
-              icon: Icon(
-                Icons.share,
-                color: Colors.grey[600],
-                size: 25.0,
-              ),
-              label: 'Share',
-              onTap: () => print('Share'),
-            )
+            
           ],
         ),
       ],

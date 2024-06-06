@@ -1,3 +1,4 @@
+import 'package:facebook/provider/postProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:facebook/models/models.dart';
 import 'package:facebook/widgets/widgets.dart';

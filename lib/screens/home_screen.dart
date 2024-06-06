@@ -1,17 +1,16 @@
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:facebook/provider/postProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:facebook/config/palette.dart';
 import 'package:facebook/data/data.dart';
 import 'package:facebook/models/models.dart';
 import 'package:facebook/widgets/widgets.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:flutter/material.dart';
-import 'package:facebook/models/models.dart';
+import 'package:http/http.dart' as http;
 
 class Stories extends StatelessWidget {
   final User currentUser;
   final List<Story> stories;
-
   const Stories({
     Key? key,
     required this.currentUser,
@@ -32,6 +31,7 @@ class Stories extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4.0),
               child: _StoryCard(
+                key: UniqueKey(), // Ensure unique key
                 isAddStory: true,
                 currentUser: currentUser,
               ),
@@ -40,7 +40,10 @@ class Stories extends StatelessWidget {
           final Story story = stories[index - 1];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: _StoryCard(story: story),
+            child: _StoryCard(
+              key: UniqueKey(), // Ensure unique key
+              story: story,
+            ),
           );
         },
       ),
@@ -155,14 +158,14 @@ class _HomeScreenState extends State<HomeScreen> {
           mobile:
               _HomeScreenMobile(scrollController: _trackingScrollController),
           desktop:
-              _HomeScreenDesktop(scrollController: _trackingScrollController),
+              _HomeScreenMobile(scrollController: _trackingScrollController),
         ),
       ),
     );
   }
 }
 
-class _HomeScreenMobile extends StatelessWidget {
+class _HomeScreenMobile extends StatefulWidget {
   final TrackingScrollController scrollController;
 
   const _HomeScreenMobile({
@@ -170,16 +173,53 @@ class _HomeScreenMobile extends StatelessWidget {
   });
 
   @override
+  _HomeScreenMobileState createState() => _HomeScreenMobileState();
+}
+
+class _HomeScreenMobileState extends State<_HomeScreenMobile> {
+  
+  List<Post1> _posts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPosts();
+  }
+
+  Future<void> fetchPosts() async {
+    final url = 'https://cvs.abyssiniasoftware.com/api/all-posts';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        setState(() {
+          _posts = responseData.map((post) => Post1.fromJson(post)).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load posts');
+      }
+    } catch (error) {
+      print('Error fetching posts: $error');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+
+  @override
   Widget build(BuildContext context) {
     return CustomScrollView(
-      controller: scrollController,
+      controller: widget.scrollController,
       slivers: [
         SliverAppBar(
           backgroundColor: Colors.white,
           title: Text(
             'Ethiobook',
             style: const TextStyle(
-              color: Palette.facebookBlue,
+              color: Color.fromARGB(255, 28, 183, 17),
               fontSize: 28.0,
               fontWeight: FontWeight.bold,
               letterSpacing: -1.2,
@@ -194,7 +234,7 @@ class _HomeScreenMobile extends StatelessWidget {
               onPressed: () => print('Search'),
             ),
             CircleButton(
-              icon: MdiIcons.facebookMessenger,
+              icon: Icons.message,
               iconSize: 30.0,
               onPressed: () => print('Messenger'),
             ),
@@ -218,89 +258,27 @@ class _HomeScreenMobile extends StatelessWidget {
             ),
           ),
         ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final Post post = posts[index];
-              return PostContainer(post: post);
-            },
-            childCount: posts.length,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HomeScreenDesktop extends StatelessWidget {
-  final TrackingScrollController? scrollController;
-
-  const _HomeScreenDesktop({
-    Key? key,
-    @required this.scrollController,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Flexible(
-          flex: 2,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: MoreOptionsList(currentUser: currentUser),
-            ),
-          ),
-        ),
-        const Spacer(),
-        Container(
-          width: 600.0,
-          child: CustomScrollView(
-            controller: scrollController,
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(0.0, 20.0, 0.0, 10.0),
-                sliver: SliverToBoxAdapter(
-                  child: Stories(
-                    currentUser: currentUser,
-                    stories: stories,
+        _isLoading
+          ? SliverToBoxAdapter(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : _posts.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Center(
+                    child: Text('No posts available'),
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final Post1 post = _posts[index];
+                      return PostContainer(post: post);
+                    },
+                    childCount: _posts.length,
                   ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: CreatePostContainer(currentUser: currentUser),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 5.0),
-                sliver: SliverToBoxAdapter(
-                  child: Rooms(onlineUsers: onlineUsers),
-                ),
-              ),
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final Post post = posts[index];
-                    return PostContainer(post: post);
-                  },
-                  childCount: posts.length,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        Flexible(
-          flex: 2,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: ContactsList(users: onlineUsers),
-            ),
-          ),
-        ),
       ],
     );
   }
