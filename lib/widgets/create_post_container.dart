@@ -1,4 +1,5 @@
 import 'package:facebook/provider/postProvider.dart';
+import 'package:facebook/screens/post_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:facebook/models/models.dart';
 import 'package:facebook/widgets/widgets.dart';
@@ -30,12 +31,17 @@ class CreatePostContainer extends StatelessWidget {
                 ProfileAvatar(imageUrl: currentUser.imageUrl),
                 const SizedBox(width: 8.0),
                 Expanded(
-                  child: TextField(
-                    decoration: InputDecoration.collapsed(
-                      hintText: 'What\'s on your mind?',
-                    ),
-                  ),
-                )
+                  child:ElevatedButton(
+        onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => CreatePostModal()),
+            );
+          },
+          child: Text("Create Post"),
+        ),
+      ),  
+              
               ],
             ),
             const Divider(height: 10.0, thickness: 0.5),

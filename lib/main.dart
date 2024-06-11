@@ -1,12 +1,16 @@
-
-import 'package:facebook/provider/commentProvider.dart';
-import 'package:facebook/provider/postProvider.dart';
-import 'package:facebook/screens/nav_screen.dart';
+import 'package:facebook/provider/CreatePostProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'package:provider/provider.dart';
+// Import your providers
+import 'package:facebook/provider/commentProvider.dart';
+import 'package:facebook/provider/postProvider.dart';
+
+// Import your screens
+import 'package:facebook/screens/nav_screen.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -14,8 +18,12 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CommentProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CommentProvider()),
+        ChangeNotifierProvider(create: (context) => PostProvider()),
+        ChangeNotifierProvider(create: (context) => CreatePostProvider()),
+      ],
       child: MaterialApp(
         title: 'Facebook',
         theme: ThemeData(
